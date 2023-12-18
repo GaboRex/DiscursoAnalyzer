@@ -1,0 +1,79 @@
+import spacy
+import numpy as np
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+from torch import cosine_similarity
+import numpy as np
+
+canciones = []
+discursos = []
+noticias = []
+
+with open("canciones.txt") as f:
+    text = f.read()
+    canciones = text.split("===")
+
+with open("discursos.txt") as f:
+    text = f.read()
+    discursos = text.split("===")
+
+with open("noticias.txt") as f:
+    text = f.read()
+    noticias = text.split("===")
+print(len(canciones))
+print(len(discursos))
+print(len(noticias))
+
+
+
+def extract_embedding(text: str, nlp: spacy.Language) -> np.ndarray:
+    doc = nlp(text)
+    return doc.vector
+
+nlp = nlp = spacy.load("es_core_news_md")
+
+texts = canciones + discursos + noticias
+embeddings = np.array([extract_embedding(text, nlp) for text in texts])
+embeddings[:4, :]
+
+len(embeddings[1])
+
+pca = PCA(n_components=3)
+embeddings_3d = pca.fit_transform(embeddings)
+embeddings_3d.shape
+
+fig = plt.figure()
+
+ax = fig.add_subplot(111, projection="3d")
+ax.scatter(
+    embeddings_3d[:, 0],
+    embeddings_3d[:, 1],
+    embeddings_3d[:, 2],
+)
+color = [2 for i in discursos] + [3 for i in noticias] + [4 for i in canciones]
+color
+
+pca2 = PCA(n_components=2)
+embeddings_2d = pca2.fit_transform(embeddings)
+plt.scatter(embeddings_2d[:,0], embeddings_2d[:,1],c=color)
+
+plt.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1], c=color)
+
+# Etiquetar cada punto con su índice
+for i, txt in enumerate(texts):
+    plt.text(embeddings_2d[i, 0], embeddings_2d[i, 1], str(i))
+
+# Mostrar el gráfico
+plt.show()
+
+indice_texto_interes = 2  
+
+similarity_scores = cosine_similarity(embeddings[indice_texto_interes].reshape(1, -1), embeddings)
+
+indices_mas_similares = similarity_scores.argsort()[0][::-1]
+
+print("Textos más similares al texto de interés:")
+for indice in indices_mas_similares[1:]:
+    print(f"Índice: {indice}, Similitud: {similarity_scores[0][indice]}")
+
+np.save("embeddings.npy", embeddings)   
