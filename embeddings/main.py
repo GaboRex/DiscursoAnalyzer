@@ -1,19 +1,15 @@
-import spacy
-import numpy as np
-from sklearn.decomposition import PCA
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from typing import List
 from pydantic import BaseModel
+from sklearn.decomposition import PCA
+from sklearn.neighbors import NearestNeighbors
+from embeddings_loader import load_embeddings, extract_embedding
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = FastAPI(title="Detector de Tipos de Texto")
 
-# Cargar el modelo de spaCy
-nlp = spacy.load("es_core_news_md")
+texts, embeddings, nlp, discursos, canciones, noticias = load_embeddings()
 
-# Cargar los embeddings precalculados
-with open("embeddings.npy", "rb") as f:
-    embeddings = np.load(f)
 
 # Realizar PCA para reducción de dimensionalidad
 pca = PCA(n_components=3)
@@ -33,16 +29,18 @@ def analyze_text_type(text_data: TextAnalysis):
     text_embedding_3d = pca.transform(text_embedding)
 
     # Calcular la similitud coseno entre el texto y los embeddings precalculados
-    similarity_scores = cosine_similarity(text_embedding, embeddings)
+    similarity_scores = cosine_similarity(text_embedding, embeddings).astype('float64')
 
     # Obtener los índices de los textos más similares
     indices_mas_similares = similarity_scores.argsort()[0][::-1]
 
     # Devolver los resultados
+# Devolver los resultados
     results = {
         "text_type": "Discurso" if indices_mas_similares[0] < len(discursos) else "Canción" if indices_mas_similares[0] < len(discursos) + len(canciones) else "Noticia",
-        "similarity_score": similarity_scores[0][indices_mas_similares[0]],
-        "similar_texts": [{"index": indice, "similarity": similarity_scores[0][indice]} for indice in indices_mas_similares[1:5]],
+        "similarity_score": float(similarity_scores[0][indices_mas_similares[0]]),  # Convertir a float64
+        "similar_texts": [{"index": int(indice), "similarity": float(similarity_scores[0][indice])} for indice in indices_mas_similares[1:5]],  # Convertir a float64
     }
+
 
     return JSONResponse(content=results)
