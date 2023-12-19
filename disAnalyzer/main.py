@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile
 from starlette.responses import JSONResponse
 from sklearn.decomposition import PCA
+from sentiment import SentimentClassifier
 from embeddings_loader import load_embeddings, extract_embedding
 from sklearn.metrics.pairwise import cosine_similarity
 from fastapi import FastAPI
@@ -15,20 +16,23 @@ class TextEntry(SQLModel, table=True):
     text: str
     text_type: str
     similarity_score: float
+    sentiment: str
 
 DATABASE_URL = "sqlite:///db.sqlite3"
 engine = create_engine(DATABASE_URL)
 
 SQLModel.metadata.create_all(engine)
 
-app = FastAPI(title="Detector de Tipos de Texto")
+app = FastAPI(title="IDiscurso")
 
 texts, embeddings, nlp, discursos, canciones, noticias = load_embeddings()
 
 pca = PCA(n_components=3)
 embeddings_3d = pca.fit_transform(embeddings)
 
-@app.post("/analyze_text_type")
+sentiment_classifier = SentimentClassifier()
+
+@app.post("/analyze_text_and_sentiment")
 async def analyze_text_type(file: UploadFile = File(...)):
     if file.filename.endswith('.docx'):
         doc = Document(file.file)
@@ -50,15 +54,19 @@ async def analyze_text_type(file: UploadFile = File(...)):
     else:
         text_type = "Noticia"
 
+    sentiment = sentiment_classifier.classify_sentiment(text)
+
     results = {
         "text_type": text_type,
         "similarity_score": float(similarity_scores[0][indices_mas_similares[0]]),  
         "similar_texts": [{"index": int(indice), "similarity": float(similarity_scores[0][indice])} for indice in indices_mas_similares[1:5]],  # Convertir a float64
+        "sentiment": sentiment,
     }
     db_text = TextEntry(
         text=text,
         text_type=text_type,
         similarity_score=float(similarity_scores[0][indices_mas_similares[0]]),
+        sentiment=sentiment,
     )
     with Session(engine) as session:
         session.add(db_text)
