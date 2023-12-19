@@ -1,0 +1,7 @@
+uvicorn
+fastapi
+python-multipart
+scikit-learn
+spacy
+sqlalchemy
+sqlmodel
