@@ -11,15 +11,15 @@ def load_embeddings():
     discursos = []
     noticias = []
 
-    with open("canciones.txt", encoding="utf-8") as f:
+    with open("dataset/canciones.txt", encoding="utf-8") as f:
         text = f.read()
         canciones = text.split("===")
 
-    with open("discursos.txt", encoding="utf-8") as f:
+    with open("dataset/discursos.txt", encoding="utf-8") as f:
         text = f.read()
         discursos = text.split("===")
 
-    with open("noticias.txt", encoding="utf-8") as f:
+    with open("dataset/noticias.txt", encoding="utf-8") as f:
         text = f.read()
         noticias = text.split("===")
 
