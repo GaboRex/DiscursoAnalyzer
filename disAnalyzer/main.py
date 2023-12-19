@@ -5,6 +5,26 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
 from embeddings_loader import load_embeddings, extract_embedding
 from sklearn.metrics.pairwise import cosine_similarity
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from sklearn.decomposition import PCA
+from sklearn.metrics.pairwise import cosine_similarity
+from sqlmodel import Field, SQLModel, create_engine, Session
+
+# Define el modelo de datos para la tabla en la base de datos
+class TextEntry(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    text: str
+    text_type: str
+    similarity_score: float
+
+# Configura la base de datos SQLite
+DATABASE_URL = "sqlite:///db.sqlite3"
+engine = create_engine(DATABASE_URL)
+
+# Crea las tablas en la base de datos
+SQLModel.metadata.create_all(engine)
 
 app = FastAPI(title="Detector de Tipos de Texto")
 
@@ -42,5 +62,13 @@ async def analyze_text_type(file: UploadFile = File(...)):
         "similarity_score": float(similarity_scores[0][indices_mas_similares[0]]),  # Convertir a float64
         "similar_texts": [{"index": int(indice), "similarity": float(similarity_scores[0][indice])} for indice in indices_mas_similares[1:5]],  # Convertir a float64
     }
+    db_text = TextEntry(
+        text=text,
+        text_type=text_type,
+        similarity_score=float(similarity_scores[0][indices_mas_similares[0]]),
+    )
+    with Session(engine) as session:
+        session.add(db_text)
+        session.commit()
 
     return JSONResponse(content=results)
