@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, UploadFile
 from starlette.responses import JSONResponse
 from sklearn.decomposition import PCA
-from embeddings_loader import load_embeddings, extract_embedding
+from disAnalyzer.embeddings_loader import load_embeddings, extract_embedding
 from sklearn.metrics.pairwise import cosine_similarity
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
